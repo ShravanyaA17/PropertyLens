@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  Animated
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons'; 
@@ -43,6 +44,19 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isCommercialOnly, setIsCommercialOnly] = useState(false);
+  const categories = ["Rent", "Buy", "New Projects"];
+  const [selectedCategory, setSelectedCategory] = useState("Rent");
+  const indicatorPosition = useRef(new Animated.Value(0)).current;
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const handleSelect = (index) => {
+    setSelectedCategory(categories[index]);
+    const itemWidth = containerWidth / categories.length;
+    Animated.spring(indicatorPosition, {
+      toValue: index * itemWidth,
+      useNativeDriver: false,
+    }).start();
+  };
 
   const filteredProperties = properties.filter((property) =>
     property.location.toLowerCase().includes(search.toLowerCase())
@@ -126,16 +140,41 @@ export default function HomeScreen() {
                 <Text style={styles.closeText}>✕</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.modalOption}>
-              <Text>Rent</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption}>
-              <Text>Buy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption}>
-              <Text>New Projects</Text>
-            </TouchableOpacity>
+            
+            <View
+              style={styles.segmentContainer}
+              onLayout={(e) => {
+                setContainerWidth(e.nativeEvent.layout.width);
+              }}
+            >
+              <Animated.View
+                style={[
+                  styles.segmentIndicator,
+                  {
+                    width: containerWidth / categories.length,
+                    left: indicatorPosition,
+                  },
+                ]}
+              />
+              {categories.map((item, index) => (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => handleSelect(index)}
+                  style={styles.segmentItem}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      selectedCategory === item
+                      ? styles.selectedText
+                      : styles.unselectedText,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <View style={styles.toggleRow}>
               <Text>View commercial properties only</Text>
@@ -192,6 +231,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 16,
     elevation: 3,
+    marginTop: 20,
   },
   image: {
     width: '100%',
@@ -267,6 +307,7 @@ modalOverlay: {
     backgroundColor: '#007bff',
     padding: 12,
     borderRadius: 8,
+    marginBottom: 16,
   },
   showButtonText: {
     color: '#fff',
@@ -274,21 +315,57 @@ modalOverlay: {
     fontWeight: 'bold',
   },
   dropdownRow: {
-  flexDirection: 'row',       
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  paddingHorizontal: 16,
-  marginTop: 16,
-},
+    flexDirection: 'row',       
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: -10,
+  },
 
-dropdownButton: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#ccc',
-  borderRadius: 8,
-  padding: 10,
-  marginHorizontal: 4,
-  flex: 1,                   
-},
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginHorizontal: 4,
+    flex: 1,                   
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#ddd',
+    borderRadius: 15,
+    padding: 1,
+    position: 'relative',
+    width: 400,
+    alignSelf: 'center',
+    marginVertical: 20,
+    height: 45,
+  },
+  segmentItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  segmentIndicator: {
+    position: 'absolute',
+    height: '100%',
+    backgroundColor: '#b3e5fc',
+    borderRadius: 20,
+    zIndex: 0,
+  },
+  segmentText: {
+    fontSize: 16,
+    textAlignVertical: 'center',     
+    lineHeight: 20,               
+  },
+  selectedText: {
+    color: '#000',
+  },
+  unselectedText: {
+    color: '#555',
+  },
+
 });
