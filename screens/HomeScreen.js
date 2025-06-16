@@ -13,6 +13,7 @@ import {
   Pressable
   
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import ActionSheet from 'react-native-actionsheet';
 import { useNavigation } from '@react-navigation/native';
@@ -54,7 +55,7 @@ const properties = [
     area: '2100 sqft',
     location: 'Pune, Maharashtra', 
     description: 'Spacious family home with a garden.',
-    statusOptions: 'ready',
+    statusOptions: 'New Projects',
     vaastuVerified: false,
     builderName: 'Godrej Builders',
     completionDate: '18-12-2025',
@@ -65,6 +66,15 @@ const properties = [
     pandoraBox: true,
   },
 ];
+const getMaxPrice = () => {
+  return Math.max(
+    ...properties.map((prop) =>
+      parseFloat(prop.price.replace(/[₹\sCr]/g, ''))
+    )
+  );
+};
+
+const maxPrice = getMaxPrice();
 
 export default function HomeScreen() {
   const [featuredMenuVisible, setFeaturedMenuVisible] = useState(false);
@@ -73,20 +83,21 @@ export default function HomeScreen() {
   const [detailsProperty, setDetailsProperty] = useState(null);  
   const [detailsModalVisible2, setDetailsModalVisible2] = useState(false);  
   const [detailsProperty2, setDetailsProperty2] = useState(null);
-
+  const [priceModalVisible, setPriceModalVisible] = useState(false);
+  const [priceRange, setPriceRange] = useState([1.5, 5]);
   const options = ['Featured', 'Newest', 'Price (Low)', 'Price (High)', 'Verified First'];
   const navigation = useNavigation();
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isCommercialOnly, setIsCommercialOnly] = useState(false);
-  const categories = ["Rent", "Buy", "New Projects"];
+  const [categories, setCategories] = useState(["Rent", "Buy"]);
   const [selectedCategory, setSelectedCategory] = useState("Rent");
   const indicatorPosition = useRef(new Animated.Value(0)).current;
   const [categoryContainerWidth, setCategoryContainerWidth] = useState(0);
   const [statusContainerWidth, setStatusContainerWidth] = useState(0);
   const mainActionSheetRef = useRef();
   const agentActionSheetRef = useRef();
-  const statusOptions = ['Any', 'Off-plan', 'Ready'];
+  const statusOptions = ['Any', 'Off-plan', 'New Projects'];
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState('any');
   const categoryIndicatorPosition = useRef(new Animated.Value(0)).current;
@@ -96,6 +107,8 @@ export default function HomeScreen() {
   const agentNumbers = ['+919876543210', '+919123456789', '+918765432109'];
   const [selected, setSelected] = useState('search');
   const [savedProperties, setSavedProperties] = useState([]);
+  const [propertyTypeModalVisible, setPropertyTypeModalVisible] = useState(false);
+  const [selectedPropertyType, setSelectedPropertyType] = useState(null);
 
   const toggleSave = (propertyId) => {
   setSavedProperties((prev) =>
@@ -125,6 +138,26 @@ export default function HomeScreen() {
 
     const selected = statusOptions[index].toLowerCase(); 
     setSelectedStatus(selected); 
+
+    if (selected === 'off-plan') {
+    setCategories(["Buy"]);
+    setSelectedCategory("Buy");
+    setSelectedCategoryIndex(0);
+    Animated.spring(categoryIndicatorPosition, {
+      toValue: 0, 
+      useNativeDriver: false,
+    }).start();
+  } else if (selected === 'new projects') {
+    setCategories(["Rent", "Buy"]);
+    setSelectedCategory("Rent");
+    setSelectedCategoryIndex(0);
+    Animated.spring(categoryIndicatorPosition, {
+      toValue: 0,
+      useNativeDriver: false,
+    }).start();
+  } else {
+    setCategories(["Rent", "Buy"]);
+  }
 
     Animated.spring(indicatorPosition, {
       toValue: (statusContainerWidth / statusOptions.length) * index,
@@ -420,11 +453,14 @@ export default function HomeScreen() {
               <Text style={styles.dropdownText}>Buy</Text>
               <Feather name="chevron-down" size={16} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.dropdownButton}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setPropertyTypeModalVisible(true)}
+            >
               <Text style={styles.dropdownText}>Property Type</Text>
               <Feather name="chevron-down" size={16} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.dropdownButton}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setPriceModalVisible(true)}>
               <Text style={styles.dropdownText}>Price</Text>
               <Feather name="chevron-down" size={16} />
             </TouchableOpacity>
@@ -433,6 +469,114 @@ export default function HomeScreen() {
   <View style={{ flex: 1 }}>
     <Text style={{ fontSize: 16, fontWeight: '500' }}>{properties.length} properties</Text>
   </View>
+    <Modal
+  animationType="slide"
+  transparent={true}
+  visible={propertyTypeModalVisible}
+  onRequestClose={() => setPropertyTypeModalVisible(false)}
+>
+  <View style={styles.propertyTypeModalOverlay}>
+    <View style={styles.propertyTypeModalContent}>
+      <View style={styles.propertyTypeModalHeader}>
+        <Text style={styles.propertyTypeModalTitle}>Select Property Type</Text>
+        <TouchableOpacity onPress={() => setPropertyTypeModalVisible(false)}>
+          <Text style={styles.propertyTypeModalCloseText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={styles.propertyTypeOption}
+        onPress={() => setSelectedPropertyType('New Projects')}
+      >
+        <Text style={styles.propertyTypeOptionText}>New Projects</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.propertyTypeOption}
+        onPress={() => setSelectedPropertyType('Off-plan')}
+      >
+        <Text style={styles.propertyTypeOptionText}>Off-Plan</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.propertyTypeShowButton}
+        onPress={() => {
+          setPropertyTypeModalVisible(false);
+          
+        }}
+      >
+        <Text style={styles.propertyTypeShowButtonText}>
+          Show {
+            properties.filter(
+              (p) => p.statusOptions?.toLowerCase() === selectedPropertyType?.toLowerCase()
+            ).length
+          } Properties
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+    <Modal
+  animationType="slide"
+  transparent={true}
+  visible={priceModalVisible}
+  onRequestClose={() => setPriceModalVisible(false)}
+>
+  <View style={styles.priceModalOverlay}>
+    <View style={styles.priceModalContent}>
+      <View style={styles.priceModalHeader}>
+        <Text style={styles.priceModalTitle}>Select Price Range</Text>
+        <TouchableOpacity onPress={() => setPriceModalVisible(false)}>
+          <Text style={styles.priceModalCloseText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.priceSliderContainer}>
+        <Text style={styles.priceRangeText}>
+          ₹{priceRange[0].toFixed(1)} Cr - ₹{priceRange[1].toFixed(1)} Cr
+        </Text>
+
+        <Slider
+          style={{ width: 250, height: 40 }}
+          minimumValue={1.5}
+          maximumValue={maxPrice}
+          step={0.1}
+          minimumTrackTintColor="#2C6F4A"
+          maximumTrackTintColor="#ccc"
+          value={priceRange[1]}
+          onValueChange={(val) => setPriceRange([1.5, val])}
+        />
+      </View>
+
+      <Text style={styles.priceCountText}>
+        Properties in this range: {
+          properties.filter((p) => {
+            const price = parseFloat(p.price.replace(/[₹\sCr]/g, ''));
+            return price >= priceRange[0] && price <= priceRange[1];
+          }).length
+        }
+      </Text>
+
+      <TouchableOpacity
+        style={styles.priceShowButton}
+        onPress={() => {
+          setPriceModalVisible(false);
+          
+        }}
+      >
+        <Text style={styles.priceShowButtonText}>
+          Show {
+            properties.filter((p) => {
+              const price = parseFloat(p.price.replace(/[₹\sCr]/g, ''));
+              return price >= priceRange[0] && price <= priceRange[1];
+            }).length
+          } Properties
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
     <Modal
       visible={detailsModalVisible2}
       transparent={true}
@@ -529,50 +673,50 @@ export default function HomeScreen() {
 
 
 
-          <View
-  style={styles.statusSegmentContainer}
-  onLayout={(e) => setStatusContainerWidth(e.nativeEvent.layout.width)}
->
-  <Animated.View
-    style={[
-      styles.statusIndicator,
-      {
-        width: statusContainerWidth / statusOptions.length,
-        left: indicatorPosition,
-        overflow: 'hidden', 
-      }
-    ]}
+  <View
+    style={styles.statusSegmentContainer}
+    onLayout={(e) => setStatusContainerWidth(e.nativeEvent.layout.width)}
   >
-    <LinearGradient
-      colors={['#2C6F4A', '#3CA56B']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={{flex: 1,
-    borderRadius: 8,  
-    height: '100%',   
-    width: '100%',}}
-    />
-  </Animated.View>
-
-  {statusOptions.map((status, index) => (
-    <TouchableOpacity
-      key={status}
-      style={styles.statusItem}
-      onPress={() => handleSelect(index)}
+    <Animated.View
+      style={[
+        styles.statusIndicator,
+        {
+          width: statusContainerWidth / statusOptions.length,
+          left: indicatorPosition,
+          overflow: 'hidden', 
+        }
+      ]}
     >
-      <Text
-        style={[
-          styles.statusText,
-          selectedIndex === index
-            ? styles.statusTextActive
-            : styles.statusTextInactive
-        ]}
+      <LinearGradient
+        colors={['#2C6F4A', '#3CA56B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{flex: 1,
+        borderRadius: 8,  
+        height: '100%',   
+        width: '100%',}}
+      />
+    </Animated.View>
+
+    {statusOptions.map((status, index) => (
+      <TouchableOpacity
+        key={status}
+        style={styles.statusItem}
+        onPress={() => handleSelect(index)}
       >
-        {status}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</View>
+        <Text
+          style={[
+            styles.statusText,
+            selectedIndex === index
+              ? styles.statusTextActive
+              : styles.statusTextInactive
+          ]}
+        >
+          {status}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
 
           <Modal
             animationType="slide"
@@ -803,6 +947,103 @@ modalOverlayDetails: {
   left: 10,
   zIndex: 10,
 },
+  priceModalOverlay: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0,0,0,0.5)',
+},
+priceModalContent: {
+  width: '85%',
+  backgroundColor: '#fff',
+  borderRadius: 12,
+  padding: 20,
+  alignItems: 'center',
+},
+priceModalHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+},
+priceModalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+},
+priceModalCloseText: {
+  fontSize: 20,
+  color: 'gray',
+},
+priceSliderContainer: {
+  marginVertical: 20,
+  alignItems: 'center',
+},
+priceRangeText: {
+  fontSize: 16,
+  marginBottom: 10,
+},
+priceCountText: {
+  fontSize: 14,
+  marginBottom: 10,
+},
+priceShowButton: {
+  backgroundColor: '#2C6F4A',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+},
+priceShowButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+propertyTypeModalOverlay: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
+propertyTypeModalContent: {
+  width: '80%',
+  backgroundColor: '#fff',
+  borderRadius: 12,
+  padding: 20,
+  alignItems: 'center',
+},
+propertyTypeModalHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+},
+propertyTypeModalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+},
+propertyTypeModalCloseText: {
+  fontSize: 20,
+  color: 'gray',
+},
+propertyTypeOption: {
+  marginVertical: 10,
+  backgroundColor: '#eee',
+  padding: 10,
+  borderRadius: 6,
+  width: '100%',
+  alignItems: 'center',
+},
+propertyTypeOptionText: {
+  fontSize: 16,
+},
+propertyTypeShowButton: {
+  backgroundColor: '#2C6F4A',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+  marginTop: 20,
+},
+propertyTypeShowButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+
 
 vaastuLabel: {
   flexDirection: 'row',
