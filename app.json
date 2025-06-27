@@ -1,7 +1,9 @@
 {
   "expo": {
     "name": "propertylens",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "slug": "propertylens",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -27,7 +29,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ]
   }
 }
